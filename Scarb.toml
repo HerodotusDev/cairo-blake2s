@@ -1,0 +1,9 @@
+[package]
+name = "cairo_blake2s"
+version = "0.1.0"
+
+# See more keys and their definitions at https://docs.swmansion.com/scarb/docs/reference/manifest.html
+
+[dependencies]
+origin = { git = "https://github.com/herodotusdev/cairo-blake2s" }
+# foo = { path = "vendor/foo" }
