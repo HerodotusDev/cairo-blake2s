@@ -1,4 +1,4 @@
-use cairo_blake2s::utils::{G, round, blake2s_compress, blake2s_state};
+use cairo_blake2s::utils::{blake2s_compress, blake2s_state};
 use debug::PrintTrait;
 
 // #[test]
