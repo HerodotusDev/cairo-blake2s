@@ -32,6 +32,39 @@ fn G(
     return (a, b, c, d, m);
 }
 
+fn Gv2(
+    m: Array<u32>, r: u32, i: u32, mut a: u32, mut b: u32, mut c: u32, mut d: u32
+) -> (u32, u32, u32, u32, Array<u32>) {
+    // a = a + b + m[sigma[r][2*i]]
+    a = u32_wrapping_add(u32_wrapping_add(a, b), *m.at(get_sigma(r, 2 * i)));
+
+    d = rotr16(d ^ a);
+
+    // c = c + d
+    c = u32_wrapping_add(c, d);
+
+    b = rotr12(b ^ c);
+
+    // a = a + b + m[sigma[r][2*i+1]]
+    a = u32_wrapping_add(u32_wrapping_add(a, b), *m.at(get_sigma(r, 2 * i + 1)));
+
+    d = d ^ a;
+    d = d ^ a;
+    d = d ^ a;
+    d = d ^ a;
+    d = d ^ a;
+    // (d).print();
+    // (a).print();
+    // d = rotr8(d ^ a);
+
+    // // c = c + d
+    // c = u32_wrapping_add(c, d);
+
+    // b = rotr7(b ^ c);
+
+    return (a, b, c, d, m);
+}
+
 fn round(
     m: Array<u32>,
     r: u32,
@@ -115,14 +148,26 @@ fn blake2s_compress(s: blake2s_state, in: Array<u8>) {
     let (m, v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15) = round(m, 1, v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15);
     let (m, v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15) = round(m, 2, v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15);
 
-    let (m, v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15) = round(m, 3, v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15);
-    let (m, v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15) = round(m, 4, v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15);
-    let (m, v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15) = round(m, 5, v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15);
-    let (m, v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15) = round(m, 6, v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15);
-    let (m, v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15) = round(m, 7, v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15);
-    let (m, v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15) = round(m, 8, v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15);
-    let (m, v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15) = round(m, 9, v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15);
 
+    let (v0, v4, v8, v12, m) = G(m, 3, 0, v0, v4, v8, v12);
+    let (v1, v5, v9, v13, m) = G(m, 3, 1, v1, v5, v9, v13);
+    let (v2, v6, v10, v14, m) = G(m, 3, 2, v2, v6, v10, v14);
+
+    let (v3, v7, v11, v15, m) = Gv2(m, 3, 3, v3, v7, v11, v15);
+
+    // let (v3, v7, v11, v15, m) = G(m, 3, 3, v3, v7, v11, v15);
+    // let (v0, v5, v10, v15, m) = G(m, 3, 4, v0, v5, v10, v15);
+    // let (v1, v6, v11, v12, m) = G(m, 3, 5, v1, v6, v11, v12);
+    // let (v2, v7, v8, v13, m) = G(m, 3, 6, v2, v7, v8, v13);
+    // let (v3, v4, v9, v14, m) = G(m, 3, 7, v3, v4, v9, v14);
+
+    // let (m, v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15) = round(m, 3, v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15);
+    // let (m, v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15) = round(m, 4, v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15);
+    // let (m, v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15) = round(m, 5, v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15);
+    // let (m, v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15) = round(m, 6, v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15);
+    // let (m, v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15) = round(m, 7, v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15);
+    // let (m, v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15) = round(m, 8, v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15);
+    // let (m, v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15) = round(m, 9, v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15);
 
 
     // let h1 = (*s.h[0]) ^ v0 ^ v8;
