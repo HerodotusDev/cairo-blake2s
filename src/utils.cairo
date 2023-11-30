@@ -28,7 +28,7 @@ struct blake2s_state {
 
 fn blake2s_compress(mut s: blake2s_state, in: Array<u8>) -> blake2s_state {
     assert(in.len() == 64, 'in array must have length 64');
-    let mut m = ArrayTrait::new();
+    let mut m: Array<u32> = ArrayTrait::new();
     
     let mut i: u32 = 0;
     loop {
@@ -55,6 +55,8 @@ fn blake2s_compress(mut s: blake2s_state, in: Array<u8>) -> blake2s_state {
     let mut v13: u32 = (s.t1) ^ 0x9B05688C;
     let mut v14: u32 = (*s.f[0]) ^ 0x1F83D9AB;
     let mut v15: u32 = (*s.f[1]) ^ 0x5BE0CD19;
+
+    let m_span = m.span();
 
     let mut r = 0;
     loop {
@@ -91,9 +93,9 @@ fn blake2s_compress(mut s: blake2s_state, in: Array<u8>) -> blake2s_state {
             };
 
             // G function begin
-
+            
             // a = a + b + m[sigma[r][2*i]]
-            // a = u32_wrapping_add(u32_wrapping_add(a, b), *m.at(get_sigma(r, 2 * i)));
+            a = u32_wrapping_add(u32_wrapping_add(a, b), *m_span.at(get_sigma(r, 2 * i)));
 
             d = rotr16(d ^ a);
 
@@ -103,7 +105,7 @@ fn blake2s_compress(mut s: blake2s_state, in: Array<u8>) -> blake2s_state {
             b = rotr12(b ^ c);
 
             // a = a + b + m[sigma[r][2*i+1]]
-            // a = u32_wrapping_add(u32_wrapping_add(a, b), *m.at(get_sigma(r, 2 * i + 1)));
+            a = u32_wrapping_add(u32_wrapping_add(a, b), *m_span.at(get_sigma(r, 2 * i + 1)));
 
             d = rotr8(d ^ a);
 
@@ -178,15 +180,7 @@ fn blake2s_update(mut s: blake2s_state, in: Array<u8>) -> blake2s_state {
         if s.t0 < 64_u32 {
             s.t1 = u32_wrapping_add(s.t1, 1);
         }
-        let mut buf: Array<u8> = ArrayTrait::new();
-        i = 0;
-        loop {
-            if i == 64_u32 {
-                break;
-            }
-            buf.append(*s.buf.at(i));
-            i += 1;
-        };
+        let mut buf: Array<u8> = s.buf.clone();
         s = blake2s_compress(s, buf);
     }
     s
