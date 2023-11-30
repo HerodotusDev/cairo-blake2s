@@ -301,7 +301,58 @@ fn blake2s_update(mut s: blake2s_state, in: Array<u8>) -> blake2s_state {
     s
 }
 
-fn blake2s(data: Array<u8>) -> blake2s_state {
+fn blake2s_final(mut s: blake2s_state) -> Array<u8> {
+    assert(*s.f[0] == 0, 'blake2s_is_lastblock');
+
+    // blake2s_increment_counter 
+    s.t0 = u32_wrapping_add(s.t0, 64_u32);
+    if s.t0 < 64_u32 {
+        s.t1 = u32_wrapping_add(s.t1, 1);
+    }
+
+    let f1 = *s.f[1];
+    s.f = array![0xffffffff, f1];
+
+    let mut i = 0;
+    let buf_span = s.buf.span();
+    let mut buf = ArrayTrait::new();
+    loop {
+        if i == s.buflen {
+            break;
+        }
+        buf.append(*buf_span[i]);
+        i += 1;
+    };
+    loop {
+        if i == 64 {
+            break;
+        }
+        buf.append(0);
+        i += 1;
+    };
+    s = blake2s_compress(s, buf);
+
+    let mut result: Array<u8> = ArrayTrait::new();
+    i = 0;
+    loop {
+        if i == 8 {
+            break;
+        }
+        let mut x = *s.h[i];
+        result.append((x%256).try_into().unwrap());
+        x /= 256;
+        result.append((x%256).try_into().unwrap());
+        x /= 256;
+        result.append((x%256).try_into().unwrap());
+        x /= 256;
+        result.append((x%256).try_into().unwrap());
+        i += 1;
+    };
+    result
+}
+
+fn blake2s(data: Array<u8>) -> Array<u8> {
     let mut state = blake2s_init();
-    return blake2s_update(state, data);
+    state = blake2s_update(state, data);
+    blake2s_final(state)
 }
