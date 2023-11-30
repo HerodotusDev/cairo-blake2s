@@ -301,7 +301,7 @@ fn blake2s_update(mut s: blake2s_state, in: Array<u8>) -> blake2s_state {
     s
 }
 
-fn blake2s_final(mut s: blake2s_state) -> Array<u8> {
+fn blake2s_final(mut s: blake2s_state) -> u256 {
     assert(*s.f[0] == 0, 'blake2s_is_lastblock');
 
     // blake2s_increment_counter 
@@ -333,26 +333,21 @@ fn blake2s_final(mut s: blake2s_state) -> Array<u8> {
 
     s = blake2s_compress(s, buf);
 
-    let mut result: Array<u8> = ArrayTrait::new();
+    let mut result: u256 = 0;
+    let mut multiplier: u256 = 1;
     i = 0;
     loop {
+        result += (*s.h[i]).into() * multiplier;
+        i += 1;
         if i == 8 {
             break;
         }
-        let mut x = *s.h[i];
-        result.append((x%256).try_into().unwrap());
-        x /= 256;
-        result.append((x%256).try_into().unwrap());
-        x /= 256;
-        result.append((x%256).try_into().unwrap());
-        x /= 256;
-        result.append((x%256).try_into().unwrap());
-        i += 1;
+        multiplier *= 0x100000000;
     };
     result
 }
 
-fn blake2s(data: Array<u8>) -> Array<u8> {
+fn blake2s(data: Array<u8>) -> u256 {
     let mut state = blake2s_init();
     state = blake2s_update(state, data);
     blake2s_final(state)
