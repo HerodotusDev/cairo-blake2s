@@ -60,8 +60,11 @@ fn test_blake2s_compress() {
             528734635,
             1541459225
         ],
-        t: array![64, 0],
-        f: array![4294967295, 0]
+        t0: 64,
+        t1: 0,
+        f: array![4294967295, 0],
+        buflen: 0,
+        buf: ArrayTrait::new()
     };
     let mut in = ArrayTrait::new();
     let mut i: u8 = 1;
