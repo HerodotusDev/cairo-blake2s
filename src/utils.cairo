@@ -242,7 +242,7 @@ fn blake2s_update(mut s: blake2s_state, in: Array<u8>) -> blake2s_state {
 
             in_shift += fill;
             in_len -= fill;
-            
+
             loop {
                 if in_len <= 64_u32 { // TODO: check if this can be converted to ==
                     break;
@@ -305,8 +305,8 @@ fn blake2s_final(mut s: blake2s_state) -> Array<u8> {
     assert(*s.f[0] == 0, 'blake2s_is_lastblock');
 
     // blake2s_increment_counter 
-    s.t0 = u32_wrapping_add(s.t0, 64_u32);
-    if s.t0 < 64_u32 {
+    s.t0 = u32_wrapping_add(s.t0, s.buflen);
+    if s.t0 < s.buflen {
         s.t1 = u32_wrapping_add(s.t1, 1);
     }
 
@@ -330,6 +330,7 @@ fn blake2s_final(mut s: blake2s_state) -> Array<u8> {
         buf.append(0);
         i += 1;
     };
+
     s = blake2s_compress(s, buf);
 
     let mut result: Array<u8> = ArrayTrait::new();

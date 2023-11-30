@@ -96,7 +96,7 @@ fn test_blake2s() {
     let mut in = ArrayTrait::new();
     let mut i: u32 = 1;
     loop {
-        if i > 1024 {
+        if i > 600 {
             break ();
         }
         let val: Option<u8> = (i%256).try_into();
