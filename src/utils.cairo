@@ -42,6 +42,36 @@ fn print_state(s: blake2s_state) -> blake2s_state {
     return s;
 }
 
+fn blake2s_init() -> blake2s_state { // 
+    let blake2s_IV = array![
+        0x6A09E667 ^ 0x01010020, // xor (depth, fanout, digest_length)
+        0xBB67AE85,
+        0x3C6EF372,
+        0xA54FF53A,
+        0x510E527F,
+        0x9B05688C,
+        0x1F83D9AB,
+        0x5BE0CD19
+    ];
+    let mut buf = ArrayTrait::new();
+    let mut i = 0;
+    loop {
+        if i == 64 {
+            break;
+        }
+        buf.append(0);
+        i += 1;
+    };
+    blake2s_state {
+        h: blake2s_IV,
+        t0: 0,
+        t1: 0,
+        f: array![0, 0],
+        buf: buf,
+        buflen: 0
+    }
+}
+
 fn blake2s_compress(mut s: blake2s_state, in: Array<u8>) -> blake2s_state {
     assert(in.len() == 64, 'in array must have length 64');
     let mut m: Array<u32> = ArrayTrait::new();
@@ -269,4 +299,9 @@ fn blake2s_update(mut s: blake2s_state, in: Array<u8>) -> blake2s_state {
         s.buflen += in_len;
     }
     s
+}
+
+fn blake2s(data: Array<u8>) -> blake2s_state {
+    let mut state = blake2s_init();
+    return blake2s_update(state, data);
 }

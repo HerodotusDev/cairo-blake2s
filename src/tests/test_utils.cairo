@@ -1,4 +1,4 @@
-use cairo_blake2s::utils::{blake2s_compress, blake2s_state, blake2s_update, print_state};
+use cairo_blake2s::utils::{blake2s_compress, blake2s_state, blake2s_update, print_state, blake2s};
 use debug::PrintTrait;
 
 // #[test]
@@ -92,20 +92,11 @@ fn test_blake2s_compress() {
 
 #[test]
 #[available_gas(9999999999)]
-fn test_blake2s_update() {
-    let state = blake2s_state {
-        h: array![1795745351, 3144134277, 1013904242, 2773480762, 1359893119, 2600822924, 528734635, 1541459225],
-        t0: 0,
-        t1: 0,
-        f: array![0,0],
-        buflen: 0,
-        buf: ArrayTrait::new()
-    };
-
+fn test_blake2s() {
     let mut in = ArrayTrait::new();
     let mut i: u32 = 1;
     loop {
-        if i > 1000 {
+        if i > 1024 {
             break ();
         }
         let val: Option<u8> = (i%256).try_into();
@@ -113,7 +104,7 @@ fn test_blake2s_update() {
         i += 1;
     };
 
-    let new_state = blake2s_update(state, in);
+    let new_state = blake2s(in);
     
     assert(*new_state.h[0] == 3061547468, 'invalid h[0]');
     assert(*new_state.h[1] == 1625135263, 'invalid h[1]');
