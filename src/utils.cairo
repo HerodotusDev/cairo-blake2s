@@ -16,14 +16,30 @@ fn load32(p0: u8, p1: u8, p2: u8, p3: u8) -> u32 {
 
 #[derive(Drop, Clone)]
 struct blake2s_state {
-    h: Array<u32>,
+    h: Array<u32>, // length: 8
     t0: u32,
     t1: u32,
-    f: Array<u32>,
-    buf: Array<u8>,
+    f: Array<u32>, // length: 2
+    buf: Array<u8>, // length: 64
     buflen: u32,
     // outlen: u32,
     // last_node: u8,
+}
+
+fn print_state(s: blake2s_state) -> blake2s_state {
+    (*s.h[0]).print();
+    (*s.h[1]).print();
+    (*s.h[2]).print();
+    (*s.h[3]).print();
+    (*s.h[4]).print();
+    (*s.h[5]).print();
+    (*s.h[6]).print();
+    (*s.h[7]).print();
+    s.t0.print();
+    s.t1.print();
+    (*s.f[0]).print();
+    (*s.f[1]).print();
+    return s;
 }
 
 fn blake2s_compress(mut s: blake2s_state, in: Array<u8>) -> blake2s_state {
@@ -93,7 +109,7 @@ fn blake2s_compress(mut s: blake2s_state, in: Array<u8>) -> blake2s_state {
             };
 
             // G function begin
-            
+
             // a = a + b + m[sigma[r][2*i]]
             a = u32_wrapping_add(u32_wrapping_add(a, b), *m_span.at(get_sigma(r, 2 * i)));
 
@@ -142,46 +158,115 @@ fn blake2s_compress(mut s: blake2s_state, in: Array<u8>) -> blake2s_state {
         r += 1;
     };
 
-
-    let h1 = (*s.h[0]) ^ v0 ^ v8;
-    let h2 = (*s.h[1]) ^ v1 ^ v9;
-    let h3 = (*s.h[2]) ^ v2 ^ v10;
-    let h4 = (*s.h[3]) ^ v3 ^ v11;
-    let h5 = (*s.h[4]) ^ v4 ^ v12;
-    let h6 = (*s.h[5]) ^ v5 ^ v13;
-    let h7 = (*s.h[6]) ^ v6 ^ v14;
-    let h8 = (*s.h[7]) ^ v7 ^ v15;
-
-    h1.print(); // 0x214d3e11
-    h2.print(); // 0x19e05713
-    h3.print(); // 0xfa70f7ac
+    let mut new_h = ArrayTrait::new();
+    new_h.append((*s.h[0]) ^ v0 ^ v8);
+    new_h.append((*s.h[1]) ^ v1 ^ v9);
+    new_h.append((*s.h[2]) ^ v2 ^ v10);
+    new_h.append((*s.h[3]) ^ v3 ^ v11);
+    new_h.append((*s.h[4]) ^ v4 ^ v12);
+    new_h.append((*s.h[5]) ^ v5 ^ v13);
+    new_h.append((*s.h[6]) ^ v6 ^ v14);
+    new_h.append((*s.h[7]) ^ v7 ^ v15);
+    s.h = new_h;
 
     s
 }
 
 fn blake2s_update(mut s: blake2s_state, in: Array<u8>) -> blake2s_state {
-    let inlen = in.len();
-    if inlen == 0 {
-        return s;
-    }
-    let left = s.buflen;
-    let fill = 64 - left;
-    if inlen > fill {
-        s.buflen = 0;
-        let mut i: u32 = 0;
+    let mut in_len = in.len();
+    let mut in_shift = 0;
+    let in_span = in.span();
+    if in_len != 0 {
+        let left = s.buflen;
+        let fill = 64 - left;
+        if in_len > fill {
+            s.buflen = 0;
+
+            let mut new_buf = ArrayTrait::new();
+            let buf_span = s.buf.span();
+            let mut i: u32 = 0;
+            loop {
+                if i == left {
+                    break;
+                }
+                new_buf.append(*buf_span.at(i));
+                i += 1;
+            };
+
+            i = 0;
+            loop {
+                if i == fill {
+                    break;
+                }
+                new_buf.append(*in_span[i]);
+                i += 1;
+            };
+
+            // blake2s_increment_counter
+            s.t0 = u32_wrapping_add(s.t0, 64_u32);
+            if s.t0 < 64_u32 {
+                s.t1 = u32_wrapping_add(s.t1, 1);
+            }
+
+            s = blake2s_compress(s, new_buf);
+
+            in_shift += fill;
+            in_len -= fill;
+            
+            loop {
+                if in_len <= 64_u32 { // TODO: check if this can be converted to ==
+                    break;
+                }
+
+                // blake2s_increment_counter
+                s.t0 = u32_wrapping_add(s.t0, 64_u32);
+                if s.t0 < 64_u32 {
+                    s.t1 = u32_wrapping_add(s.t1, 1);
+                }
+
+                let mut compress_in = ArrayTrait::new();
+                i = 0;
+                loop {
+                    if i == 64_u32 {
+                        break;
+                    }
+                    compress_in.append(*in_span[in_shift + i]);
+                    i += 1;
+                };
+
+                s = blake2s_compress(s, compress_in);
+
+                in_shift += 64_u32;
+                in_len -= 64_u32;
+            };
+        }
+
+        let mut new_buf = ArrayTrait::new();
+        let buf_span = s.buf.span();
+        let mut i = 0;
         loop {
-            if i == fill {
+            if i == s.buflen {
                 break;
             }
-            s.buf.append(*in.at(i));
+            new_buf.append(*buf_span[i]);
             i += 1;
         };
-        s.t0 = u32_wrapping_add(s.t0, 64_u32);
-        if s.t0 < 64_u32 {
-            s.t1 = u32_wrapping_add(s.t1, 1);
-        }
-        let mut buf: Array<u8> = s.buf.clone();
-        s = blake2s_compress(s, buf);
+        i = 0;
+        loop {
+            if i == in_len {
+                break;
+            }
+            new_buf.append(*in_span[in_shift + i]);
+            i += 1;
+        };
+        loop {
+            if new_buf.len() == 64_u32 {
+                break;
+            }
+            new_buf.append(0);
+        };
+        s.buf = new_buf;
+        s.buflen += in_len;
     }
     s
 }
