@@ -79,6 +79,9 @@ fn blake2s_compress(mut s: blake2s_state, in: Array<u8>) -> blake2s_state {
         if r == 10 {
             break;
         }
+
+        let sigma = get_sigma(r);
+
         // ROUND function begin
 
         let mut a = 0;
@@ -111,7 +114,7 @@ fn blake2s_compress(mut s: blake2s_state, in: Array<u8>) -> blake2s_state {
             // G function begin
 
             // a = a + b + m[sigma[r][2*i]]
-            a = u32_wrapping_add(u32_wrapping_add(a, b), *m_span.at(get_sigma(r, 2 * i)));
+            a = u32_wrapping_add(u32_wrapping_add(a, b), *m_span.at(*sigma[2 * i]));
 
             d = rotr16(d ^ a);
 
@@ -121,7 +124,7 @@ fn blake2s_compress(mut s: blake2s_state, in: Array<u8>) -> blake2s_state {
             b = rotr12(b ^ c);
 
             // a = a + b + m[sigma[r][2*i+1]]
-            a = u32_wrapping_add(u32_wrapping_add(a, b), *m_span.at(get_sigma(r, 2 * i + 1)));
+            a = u32_wrapping_add(u32_wrapping_add(a, b), *m_span.at(*sigma[2 * i + 1]));
 
             d = rotr8(d ^ a);
 
