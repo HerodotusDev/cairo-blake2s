@@ -7,7 +7,8 @@ struct blake2s_state {
     h: Array<u32>, // length: 8
     t0: u32,
     t1: u32,
-    f: Array<u32>, // length: 2
+    f0: u32,
+    f1: u32,
     buf: Array<u8>, // length: 64
     buflen: u32,
 }
@@ -32,11 +33,13 @@ fn blake2s_init() -> blake2s_state {
         buf.append(0);
         i += 1;
     };
+
     blake2s_state {
         h: blake2s_IV,
         t0: 0,
         t1: 0,
-        f: array![0, 0],
+        f0: 0,
+        f1: 0,
         buf: buf,
         buflen: 0
     }
@@ -67,10 +70,10 @@ fn blake2s_compress(mut s: blake2s_state, in: Array<u8>) -> blake2s_state {
     let mut v9: u32 = 0xBB67AE85;
     let mut v10: u32 = 0x3C6EF372;
     let mut v11: u32 = 0xA54FF53A;
-    let mut v12: u32 = (s.t0) ^ 0x510E527F;
-    let mut v13: u32 = (s.t1) ^ 0x9B05688C;
-    let mut v14: u32 = (*s.f[0]) ^ 0x1F83D9AB;
-    let mut v15: u32 = (*s.f[1]) ^ 0x5BE0CD19;
+    let mut v12: u32 = s.t0 ^ 0x510E527F;
+    let mut v13: u32 = s.t1 ^ 0x9B05688C;
+    let mut v14: u32 = s.f0 ^ 0x1F83D9AB;
+    let mut v15: u32 = s.f1 ^ 0x5BE0CD19;
 
     let m_span = m.span();
 
@@ -217,7 +220,7 @@ fn blake2s_update(mut s: blake2s_state, in: Array<u8>) -> blake2s_state {
             in_len -= fill;
 
             loop {
-                if in_len <= 64_u32 { // TODO: check if this can be converted to ==
+                if in_len <= 64_u32 {
                     break;
                 }
 
@@ -271,11 +274,12 @@ fn blake2s_update(mut s: blake2s_state, in: Array<u8>) -> blake2s_state {
         s.buf = new_buf;
         s.buflen += in_len;
     }
+
     s
 }
 
 fn blake2s_final(mut s: blake2s_state) -> u256 {
-    assert(*s.f[0] == 0, 'blake2s_is_lastblock');
+    assert(s.f0 == 0, 'blake2s_is_lastblock');
 
     // blake2s_increment_counter 
     s.t0 = u32_wrapping_add(s.t0, s.buflen);
@@ -283,8 +287,7 @@ fn blake2s_final(mut s: blake2s_state) -> u256 {
         s.t1 = u32_wrapping_add(s.t1, 1);
     }
 
-    let f1 = *s.f[1];
-    s.f = array![0xffffffff, f1];
+    s.f0 = 0xffffffff;
 
     let mut i = 0;
     let buf_span = s.buf.span();
@@ -317,5 +320,6 @@ fn blake2s_final(mut s: blake2s_state) -> u256 {
         }
         multiplier *= 0x100000000;
     };
+    
     result
 }
