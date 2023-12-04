@@ -8,7 +8,6 @@ struct blake2s_state {
     t0: u32,
     t1: u32,
     f0: u32,
-    f1: u32,
     buf: Array<u8>, // length: 64
     buflen: u32,
 }
@@ -39,7 +38,6 @@ fn blake2s_init() -> blake2s_state {
         t0: 0,
         t1: 0,
         f0: 0,
-        f1: 0,
         buf: buf,
         buflen: 0
     }
@@ -73,7 +71,7 @@ fn blake2s_compress(mut s: blake2s_state, in: Array<u8>) -> blake2s_state {
     let mut v12: u32 = s.t0 ^ 0x510E527F;
     let mut v13: u32 = s.t1 ^ 0x9B05688C;
     let mut v14: u32 = s.f0 ^ 0x1F83D9AB;
-    let mut v15: u32 = s.f1 ^ 0x5BE0CD19;
+    let mut v15: u32 = 0x5BE0CD19; // f1 is always 0
 
     let m_span = m.span();
 
@@ -320,6 +318,6 @@ fn blake2s_final(mut s: blake2s_state) -> u256 {
         }
         multiplier *= 0x100000000;
     };
-    
+
     result
 }
